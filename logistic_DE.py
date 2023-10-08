@@ -81,8 +81,8 @@ inputs=1
 outputs=1
 layers=1
 neurons=5
-learning_rate=1e-1
-num_epochs=100
+learning_rate=1e-2
+num_epochs=1000
 batch_size=30
 domain=(-5.0,5.0)
 
