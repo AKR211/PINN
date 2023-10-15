@@ -1,8 +1,8 @@
 import numpy as np
-from torch import tensor,zeros_like,FloatTensor,linspace,manual_seed
+from torch import tensor,zeros_like,FloatTensor,linspace,manual_seed,ones_like
+from torch.autograd import grad
+from torch.optim import Adam
 import torch.nn as nn
-from torch.func import functional_call,grad,vmap
-import torchopt
 import matplotlib.pyplot as plt
 
 #Define the architecture of the neural network
@@ -26,26 +26,13 @@ class NeuralNet(nn.Module):
 		self.Network = nn.Sequential(*layers)    #chain together layers
 
 	def forward(self,input):
-		return self.Network(input.reshape(-1,1)).squeeze()    #forward propogator
+		return self.Network(input.view(-1,1))    #forward propogator
 
-#This function calculated the derivatives of the forward propogator till a given order
-def deriv(model,order):
-
-	#Inorder to calculate higher order derivatives non-destructively, we use the functional API (functorch)
-	def f(x,params):
-		params_dict = {k:v for k,v in zip(list(dict(model.named_parameters()).keys()),list(params))}
-		return functional_call(model,params_dict,(x,))
-
-	derivatives=[]
-	derivatives.append(f)
-	func = f
-
-	for i in range(order):
-		func = grad(f)       #calculate the derivative
-		func_map = vmap(func,in_dims=(0,None))     #using a vmap to support batching
-		derivatives.append(func_map)
-
-	return derivatives
+def dnfdxn(n,model,x_values):
+	out = model(x_values)
+	for i in range(n):
+		out = grad(out, x_values, ones_like(out), create_graph=True)[0]
+	return out.view(-1,1)
 
 #NOW WE SOLVE THE LOGISTIC DIFFERENTIAL EQUATION
 
@@ -55,17 +42,17 @@ x_boundary = 0.0
 f_boundary = 0.5
 
 #creates the loss function using the necessary derivatives
-def loss_func_maker(f,dfdx):
+def loss_func_maker(f,dnfdxn):
 	
 	#The loss function is a sum of MSE loss due to the differetnial equation constraint and the boundary constraints
-	def loss_func(x,params):
+	def loss_func(x):
 	
-		f_value = f(x,params)		
-		DEloss = dfdx(x,params) - R*f_value*(1-f_value)   #loss due to differetnial equation constraint
+		f_value = f(x)	
+		DEloss = dnfdxn(1,f,x) - R*f_value*(1-f_value)   #loss due to differetnial equation constraint
 
 		x0 = x_boundary
 		f0 = f_boundary
-		Bdryloss = f(tensor([x0]),params) - tensor([f0]) #loss due to the boundary constraint
+		Bdryloss = f(tensor([x0])) - tensor([f0]) #loss due to the boundary constraint
 
 		loss = nn.MSELoss()
 		loss_val = loss(DEloss,zeros_like(DEloss)) + loss(Bdryloss,zeros_like(Bdryloss))
@@ -74,37 +61,36 @@ def loss_func_maker(f,dfdx):
 	return loss_func
 
 #for recreating the same output
-manual_seed(42)
+manual_seed(420)
 
 #define all specifications
 inputs=1
 outputs=1
 layers=1
-neurons=5
-learning_rate=1e-2
-num_epochs=1000
+neurons=10
+learning_rate=1e-4
+num_epochs=10000
 batch_size=30
 domain=(-5.0,5.0)
 
 #we use the adam optimizer of torchopt module for functional API
-optimizer = torchopt.FuncOptimizer(torchopt.adam(lr=learning_rate))
 
-model = NeuralNet(inputs,layers,outputs,neurons)
-derivatives = deriv(model,1)
-f,dfdx = derivatives
-loss_func = loss_func_maker(f,dfdx)
 
-params = tuple(model.parameters())
+f = NeuralNet(inputs,layers,outputs,neurons)
+optimizer = Adam(f.parameters(),lr=learning_rate)
+loss_func = loss_func_maker(f,dnfdxn)
 
+x = linspace(domain[0],domain[1],batch_size).view(-1,1).requires_grad_(True)	       #training data for 1 batch
 losses=[]
 for i in range(num_epochs):
-	x = FloatTensor(batch_size).uniform_(domain[0],domain[1])       #training data for 1 batch
-	loss = loss_func(x,params)                                      #loss for the batch
-	params = optimizer.step(loss,params)                            #optimization step
+	optimizer.zero_grad()
+	loss = loss_func(x)                                      #loss for the batch
+	loss.backward()
+	optimizer.step()                            #optimization step
 	losses.append(float(loss))
 
 X=linspace(domain[0],domain[1],100).reshape(-1,1)                   #test data
-Y=f(X,params)
+Y=f(X)
 truef=lambda x: 1.0/(1.0+(1.0/f_boundary-1.0)*np.exp(-R*x))         #analytical solution
 Y_=truef(X)
 
