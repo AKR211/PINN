@@ -55,7 +55,7 @@ def loss_func_maker(f,dnfdxn):
 		Bdryloss = f(x0) - f0 #loss due to the sample points
 
 		loss = nn.MSELoss()
-		loss_val = loss(DEloss,zeros_like(DEloss)) + loss(Bdryloss,zeros_like(Bdryloss))
+		loss_val = (1e-2)*loss(DEloss,zeros_like(DEloss)) + loss(Bdryloss,zeros_like(Bdryloss))
 		return loss_val
 
 	return loss_func
@@ -67,7 +67,7 @@ manual_seed(420)
 inputs=1
 outputs=1
 layers=1
-neurons=10
+neurons=16
 learning_rate=1e-4
 num_epochs=10000
 batch_size=30

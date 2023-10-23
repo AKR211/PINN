@@ -39,7 +39,7 @@ def dnfdxn(n,model,x_values):
 #NOW WE SOLVE THE HARMONIC OSCILLATOR DIFFERENTIAL EQUATION
 
 R = 20.0
-G=2.0
+G = 2.0
 x_data = tensor([0.,0.1,0.2]).view(-1,1) #sample points
 y_data = tensor([0.,0.7478,-0.4984]).view(-1,1)
 
@@ -50,7 +50,6 @@ def loss_func_maker(f,dnfdxn):
 	def loss_func(x):
 		
 		f_value, dfdx, d2fdx2 = dnfdxn(2,f,x)
-		#f_value = f(x)	
 		DEloss = d2fdx2 + 2*G*dfdx + (R**2)*f_value   #loss due to differential equation constraint
 
 		x0 = x_data
@@ -69,8 +68,8 @@ manual_seed(123)
 #define all specifications
 inputs=1
 outputs=1
-layers=2
-neurons=32
+layers=1
+neurons=16
 learning_rate=1e-4
 num_epochs=30000
 batch_size=30
@@ -90,10 +89,14 @@ for i in range(num_epochs):
     loss.backward()
     optimizer.step()                            #optimization step
     losses.append(float(loss))
+    if not i%1000:
+       print(i, float(loss))
+
+print(f'Final loss is {losses[-1]}')
 
 X = linspace(domain[0],domain[1],500).reshape(-1,1)   #test data
 Y = f(X)
-truef = lambda x: np.exp(-2.*x)*	np.sin(19.9*x)         #analytical solution
+truef = lambda x: np.exp(-2.*x)*np.sin(19.9*x)         #analytical solution
 Y_ = truef(X).view(-1,1)
 
 plt.figure(figsize=(11.8,4.8))

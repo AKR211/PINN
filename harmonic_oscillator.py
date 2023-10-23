@@ -66,10 +66,10 @@ manual_seed(123)
 #define all specifications
 inputs=1
 outputs=1
-layers=2
-neurons=32
+layers=1
+neurons=16
 learning_rate=1e-4
-num_epochs=20000
+num_epochs=30000
 batch_size=30
 domain=(0.,1.0)
 
@@ -87,6 +87,8 @@ for i in range(num_epochs):
     loss.backward()
     optimizer.step()                            #optimization step
     losses.append(float(loss))
+    if not i%1000:
+        print(i, float(loss))
 
 X = linspace(domain[0],domain[1],500).reshape(-1,1)   #test data
 Y = f(X)
