@@ -1,5 +1,5 @@
 import numpy as np
-from torch import tensor,zeros_like,FloatTensor,linspace,manual_seed,ones_like
+from torch import tensor,zeros_like,FloatTensor,linspace,manual_seed,ones_like,vmap
 from torch.autograd import grad
 from torch.optim import Adam
 import torch.nn as nn
@@ -30,48 +30,73 @@ class NeuralNet(nn.Module):
 
 #the derivative calculator for nth degree
 def dnfdxn(n,model,x_values):
-	out = [model(x_values)]
+	out = model(x_values)
 	for i in range(n):
-		d = grad(out[-1], x_values, ones_like(out[-1]), create_graph=True)[0]
-		out.append(d.view(-1,1))
-	return out
+		out = grad(out, x_values, ones_like(out), create_graph=True)[0]
+	return out.view(-1,1)
 
 #NOW WE SOLVE THE HARMONIC OSCILLATOR DIFFERENTIAL EQUATION
 
-R = 20.0
-G = 2.0
-x_data = tensor([0.,0.1,0.2]).view(-1,1) #sample points
-y_data = tensor([0.,0.7478,-0.4984]).view(-1,1)
+R = 400.0
+def V(x):
+	L=[]
+	for i in x:
+		p = float(i.squeeze())
+		if p<0.5:
+			L.append(0.0)
+			continue
+		if p<0.7:
+			#L.append(R*(np.cot(np.sqrt(R)*0.4))**2)
+			L.append(400.0 + (2.94130127899**2))
+			continue
+		L.append(0.0)
+	return tensor(L).view(-1,1)
+
+def truef(x):
+	L=[]
+	for i in x:
+		p = float(i.squeeze())
+		if p<0.4:
+			L.append(np.sin(20.0*p))
+			continue
+		if p<0.6:
+			L.append(3.20855836829*np.exp(-2.94130127899*p))
+			continue
+		L.append(0.555292511792*np.sin(20*p - 10.2831853072))
+	return tensor(L).view(-1,1)
+
+x_data = tensor([0.,0.1,0.2,0.4,0.45,0.5,0.55,0.6,0.9,1.0]).view(-1,1) #sample points
+y_data = truef(x_data).view(-1,1)
 
 #creates the loss function using the necessary derivatives
 def loss_func_maker(f,dnfdxn):
 	
 	#The loss function is a sum of MSE loss due to the differetnial equation constraint and the boundary constraints
 	def loss_func(x):
-		
-		f_value, dfdx, d2fdx2 = dnfdxn(2,f,x)
-		DEloss = d2fdx2 + 2*G*dfdx + (R**2)*f_value   #loss due to differential equation constraint
+	
+		f_value = f(x)	
+		DEloss = dnfdxn(2,f,x) + (R-V(x))*f_value   #loss due to differential equation constraint
 
 		x0 = x_data
 		f0 = y_data
 		Bdryloss = f(x0) - f0 #loss due to the sample points
 
 		loss = nn.MSELoss()
-		loss_val = (1e-4)*loss(DEloss,zeros_like(DEloss)) + loss(Bdryloss,zeros_like(Bdryloss))
+		loss_val = (1e-5)*loss(DEloss,zeros_like(DEloss)) + loss(Bdryloss,zeros_like(Bdryloss))
 		return loss_val
 
 	return loss_func
 
 #for recreating the same output
-manual_seed(73)
+manual_seed(123)
 
 #define all specifications
 inputs=1
 outputs=1
-layers=1
-neurons=16
+layers=2
+neurons=64
 learning_rate=1e-4
-num_epochs=30000
+num_epochs=50000
 batch_size=30
 domain=(0.,1.0)
 
@@ -90,28 +115,27 @@ for i in range(num_epochs):
     optimizer.step()                            #optimization step
     losses.append(float(loss))
     if not i%1000:
-       print(i, float(loss))
-
-print(f'Final loss is {losses[-1]}')
+        print(i, float(loss))
 
 X = linspace(domain[0],domain[1],500).reshape(-1,1)   #test data
 Y = f(X)
-truef = lambda x: np.exp(-2.*x)*np.sin(19.9*x)         #analytical solution
+
+#truef = lambda x: np.sin(20.0*x)         #analytical solution
 Y_ = truef(X).view(-1,1)
 
 plt.figure(figsize=(11.8,4.8))
 #plot the neural network solution vs the analytical solution
 plt.subplot(1,2,1)
-plt.plot(X.detach().numpy(),Y_.detach().numpy(),label='analytic solution')
-plt.plot(X.detach().numpy(),Y.detach().numpy(),label='predicted solution')
-plt.scatter(x_data.detach().numpy(),y_data.detach().numpy(),label='sample points')
+plt.plot(X.detach().numpy(),Y_.detach().numpy())
+plt.plot(X.detach().numpy(),Y.detach().numpy())
+plt.scatter(x_data.detach().numpy(),y_data.detach().numpy())
 plt.xlabel('x')
 plt.ylabel('f(x)')
-plt.legend(loc=1)
 
 #plot the loss with each epoch
 plt.subplot(1,2,2)
 plt.plot(range(1,num_epochs+1),losses)
 plt.xlabel('epoch')
 plt.ylabel('loss')
+
 plt.show()

@@ -44,7 +44,7 @@ def dnfdxn(n,f_value,x_values):
 
 #NOW WE SOLVE THE WAVE DIFFERENTIAL EQUATION
 
-c = 1.0
+c = .1
 '''
 x_data = tensor([0.0, 0.0345, 0.069, 0.1034, 0.1379, 0.1724, 0.2069, 0.2414, 0.2759, 0.3103, 0.3448, 0.3793, 0.4138, 0.4483, 0.4828, 0.5172, 0.5517, 0.5862, 0.6207, 0.6552, 0.6897, 0.7241, 0.7586, 0.7931, 0.8276, 0.8621, 0.8966, 0.931, 0.9655, 1.0, 0.0, 0.0345, 0.069, 0.1034, 0.1379, 0.1724, 0.2069, 0.2414, 0.2759, 0.3103, 0.3448, 0.3793, 0.4138, 0.4483, 0.4828, 0.5172, 0.5517, 0.5862, 0.6207, 0.6552, 0.6897, 0.7241, 0.7586, 0.7931, 0.8276, 0.8621, 0.8966, 0.931, 0.9655, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]).view(-1,1) #sample points
 t_data = tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0345, 0.069, 0.1034, 0.1379, 0.1724, 0.2069, 0.2414, 0.2759, 0.3103, 0.3448, 0.3793, 0.4138, 0.4483, 0.4828, 0.5172, 0.5517, 0.5862, 0.6207, 0.6552, 0.6897, 0.7241, 0.7586, 0.7931, 0.8276, 0.8621, 0.8966, 0.931, 0.9655, 1.0, 0.0, 0.0345, 0.069, 0.1034, 0.1379, 0.1724, 0.2069, 0.2414, 0.2759, 0.3103, 0.3448, 0.3793, 0.4138, 0.4483, 0.4828, 0.5172, 0.5517, 0.5862, 0.6207, 0.6552, 0.6897, 0.7241, 0.7586, 0.7931, 0.8276, 0.8621, 0.8966, 0.931, 0.9655, 1.0]).view(-1,1) #sample points
@@ -55,10 +55,10 @@ y_data = tensor([0.0, 0.6363, 0.9817, 0.8785, 0.3737, -0.3019, -0.8395, -0.9934,
 0.9129, 0.4447, -0.2269, -0.7947, -0.9993, -0.7471, -0.1535, 0.5103, 0.9409, 0.9414, 0.5116, -0.152, -0.7461, -0.9992, -0.7956, -0.2284, 0.4433, 0.9123, 0.9644, 0.5756, -0.0762, -0.6932, -0.9934, -0.8395, -0.3019, 0.3737, 0.8785, 0.9817, 0.6363, 0.0]
 ).view(-1,1)
 '''
-truef = lambda x,t: np.exp(-10.0*((x - t)**2))
+truef = lambda x,t: np.exp(-100.0*((x - 0.5)**2))
 n=30
-x_data = hstack((linspace(0,1,n),linspace(0,1,n),zeros(n),ones(n))).view(-1,1)
-t_data = hstack((zeros(n),ones(n),linspace(0,1,n),linspace(0,1,n))).view(-1,1)
+x_data = hstack((linspace(0,1,n),zeros(n),ones(n))).view(-1,1)
+t_data = hstack((zeros(n),linspace(0,1,n),linspace(0,1,n))).view(-1,1)
 
 y_data = truef(x_data,t_data).view(-1,1)
 
@@ -71,7 +71,7 @@ def loss_func_maker(f,dnfdxn):
 		f_value = f(x, t)
 		f_value, dfdx, d2fdx2 = dnfdxn(2,f_value, x)
 		f_value, dfdt, d2fdt2 = dnfdxn(2,f_value, t)
-		DEloss = d2fdt2 - (c**2)*d2fdx2   #loss due to differential equation constraint
+		DEloss = dfdt - (c**2)*d2fdx2   #loss due to differential equation constraint
 
 		x0 = x_data
 		t0 = t_data
@@ -93,7 +93,7 @@ outputs=1
 layers=2
 neurons=32
 learning_rate=1e-4
-num_epochs=20000
+num_epochs=10000
 batch_size=30
 domainx=(0.,1.0)
 domainy=(0.,1.0)
@@ -130,7 +130,7 @@ Y_ = truef(X, T).view(-1,1)
 
 #plt.figure(figsize=(11.8,4.8))
 #plot the neural network solution vs the analytical solution
-
+'''
 plt.subplot(1,2,1)
 
 plt.plot(X.detach().numpy(),Y.detach().numpy())
@@ -142,7 +142,7 @@ plt.ylabel('f(x)')
 plt.imshow(Y.detach().numpy().reshape(500,500),cmap='Greys', origin='lower')
 
 #plot the loss with each epoch
-#plt.subplot(1,2,2)
+plt.subplot(1,2,2)
 plt.plot(range(1,num_epochs+1),losses)
 plt.xlabel('epoch')
 plt.ylabel('loss')
@@ -158,7 +158,7 @@ for t in linspace(0.,0.297*np.pi,99):
 	plt.figure(figsize=(8,4))
 	plt.plot(x_gif.detach().numpy(),f(x_gif,t_gif).detach().numpy())
 	plt.xlim(0.,1.)
-	plt.ylim(-1.2,1.2)
+	plt.ylim(-0.2,1.2)
 	plt.title(f't = {round(t.item(),3)}')
 	plt.xlabel('x')
 	plt.ylabel('f(x,t)')
@@ -169,4 +169,3 @@ for t in linspace(0.,0.297*np.pi,99):
 	i+=1
 	
 save_gif_PIL("pinn.gif", files, fps=20, loop=0)
-'''

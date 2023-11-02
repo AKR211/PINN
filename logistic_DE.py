@@ -88,6 +88,7 @@ for i in range(num_epochs):
 	optimizer.step()                            #optimization step
 	losses.append(float(loss))
 
+print(losses[-1])
 X=linspace(domain[0],domain[1],100).reshape(-1,1)   #test data
 Y=f(X)
 truef=lambda x: 1/(1 + np.exp(-R*x))         #analytical solution
@@ -96,11 +97,12 @@ Y_=truef(X)
 plt.figure(figsize=(11.8,4.8))
 #plot the neural network solution vs the analytical solution
 plt.subplot(1,2,1)
-plt.plot(X.detach().numpy(),Y.detach().numpy())
-plt.plot(X.detach().numpy(),Y_.detach().numpy())
-plt.scatter(x_data.detach().numpy(),y_data.detach().numpy())
+plt.plot(X.detach().numpy(),Y_.detach().numpy(), label= 'analytical solution')
+plt.plot(X.detach().numpy(),Y.detach().numpy(),label = 'predicted solution')
+plt.scatter(x_data.detach().numpy(),y_data.detach().numpy(), label = 'sample points')
 plt.xlabel('x')
 plt.ylabel('f(x)')
+plt.legend(loc=4)
 
 #plot the loss with each epoch
 plt.subplot(1,2,2)
