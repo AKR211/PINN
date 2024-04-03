@@ -104,7 +104,7 @@ plt.scatter(x_data.detach().numpy(),y_data.detach().numpy())
 plt.xlabel('x')
 plt.ylabel('f(x)')
 
-#plot the loss with each epoch
+plot the loss with each epoch
 plt.subplot(1,2,2)
 plt.plot(range(1,num_epochs+1),losses)
 plt.xlabel('epoch')

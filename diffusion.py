@@ -143,11 +143,12 @@ plt.imshow(Y.detach().numpy().reshape(500,500),cmap='Greys', origin='lower')
 
 #plot the loss with each epoch
 plt.subplot(1,2,2)
+'''
 plt.plot(range(1,num_epochs+1),losses)
 plt.xlabel('epoch')
 plt.ylabel('loss')
 plt.show()
-'''
+
 files=[]
 i=0
 for t in linspace(0.,0.297*np.pi,99):
